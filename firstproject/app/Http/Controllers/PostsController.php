@@ -107,6 +107,21 @@ class PostsController extends Controller
             {  
                 return view('myblade.extension_useController',compact('id','password','name'));  
             } 
+            public function store(Request $request)  
+            {  
+                $this->validate($request,[  
+                'name'=>'required',  
+                'list'=> 'required',  
+                'dob'=>'required',  
+                'body'=>'required',  
+                'percent'=>'required',  
+                'exp'=>'required',  
+                'salary'=>'required',  
+                'resume'=>'required']);  
+           
+                return "Resume has been updated successfully";  
+    
+            }  
 
             
 

@@ -1,6 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Models\Post;  //For reaching Post Model (Eloquent routing without controller)
+use App\Models\User; //user hasOne relationship with Post
+use App\Models\Country;
+use App\Models\Photo;
+use App\Models\Audio;
+use App\Models\Tag;
+use App\Models\Taggable;
+use App\Models\Role;
 
 /*
 |--------------------------------------------------------------------------
@@ -348,3 +356,293 @@ Route::get('/ext_useParent', function () {
 
 //Extending Master Layout --- with controller ---
 Route::get('/ext_useController/{id}/{password}/{name}','PostsController@ext_useController');  
+
+Route::get('/store_form',function()  
+{  
+  return view('myblade.form');  
+});  
+
+
+//DATABASE (raw sql)
+//Inserting the data
+Route::get('/insert_data', function () {  
+  DB::insert('insert into posts(title,body) values(?,?)',['software developer','himanshu is a software developer']);  
+});  
+
+//Reading the data
+Route::get('/select_data',function(){  
+  $results=DB::select('select * from posts where id=?',[1]);  
+  foreach($results as $posts)  
+  {  
+    echo "title is :".$posts->title;  
+    echo "<br>";  
+    echo "body is:".$posts->body;  
+  }  
+});  
+
+//Updating the data
+Route::get('/update_data', function(){  
+    $updated=DB::update('update posts set title="software tester" where id=?',[1]);  
+    return $updated;  
+});  
+
+
+//Deleting the data
+Route::get('/delete_data',function(){  
+    $deleted=DB::delete('delete from posts where id=?',[2]);  
+    return $deleted;  
+});  
+
+
+//DATABASE (Eloquent Model)
+//(Eloquent routing without controller)
+
+//Reading Data -> Eloquent
+Route::get('/basic_read',function(){  
+  $posts=Post::all();  
+  foreach($posts as $post)  
+  {  
+    echo $post->body;  
+    echo '<br>';  
+  }  
+});  
+
+//Reading one record
+Route::get('/basic_find',function(){  
+  $posts=Post::find(3);  
+  return $posts->title;  
+});  
+
+//Reading data with constraints (raw data)
+Route::get('/basic_where_first',function(){  
+  $posts=Post::where('id',3)->first();  
+  return $posts;  
+});
+
+//Reading data (single value) with constraints
+Route::get('/basic_where_value',function(){  
+  $posts=Post::where('id',3)->value('title');  
+  return $posts;  
+});
+
+
+//Inserting data -> Eloquent
+Route::get('/basic_insert',function(){  
+  $post=new Post;  
+  $post->title='Nishka';  
+  $post->body='QA Analyst';  
+  $post->save();  
+});  
+
+//Updating Data with the save() method -> Basic
+Route::get('/basic_update',function(){  
+  $post=Post::find(2);  
+  $post->title='Haseena';  
+  $post->body='Graphic Designer';  
+  $post->save();  
+});  
+
+
+//Mass Assignment
+//Eloquent Create
+Route::get('/eloq_create',function(){  
+  Post::create(['title'=>'Tolashiks','body'=>'Tawando Master']);  
+});  
+
+//Eloquent Update
+Route::get('/eloq_update',function(){  
+Post::where('id',1)->update(['title'=>'Charu','body'=>'technical Content Writer']);  
+});
+
+//Deleting data
+
+//**## use the find() and delete() method ##**//
+Route::get('/find_delete',function(){  
+  $post=Post::find(7);  
+  $post->delete();  
+});  
+
+//**--## use the destroy() method. ##--** //
+Route::get('/single_destroy',function(){  
+  Post::destroy(6);  
+});   
+
+Route::get('/multiple_destroy',function(){  
+Post::destroy([8,9]);  
+});  
+
+//**--## use the query. ##--**//
+Route::get('/query_delete',function(){  
+  Post::where('id',9)->delete();  
+}); 
+
+
+//Soft Deleting/Trashing
+Route::get('/soft_delete',function(){  
+  Post::find(9)->delete();  
+});  
+
+//Retrieving deleted/trashed data
+Route::get('/read_soft_delete',function(){  
+  $post=Post::withTrashed()->where('id',9)->get();  
+  return $post;  
+}); 
+
+//Restoring deleted/trashed data
+Route::get('/restore_soft_delete',function(){  
+  Post::withTrashed()->where('id',9)->restore(); 
+}); 
+
+//Deleting one record permanently
+Route::get('/force_delete',function(){  
+  Post::withTrashed()->where('id',9)->forceDelete();  
+});  
+
+//Deleting records permanently/Empty trash
+Route::get('/empty_trash',function(){  
+  Post::onlyTrashed()->forceDelete();  
+});  
+
+
+//Laravel Eloquent relationship
+
+//One to one relationship
+//use App\Models\User;  
+Route::get(
+  '/user_hasone_post',function()  
+  {  
+    return User::find(1)->post;  
+  }
+);  
+
+//Inverse Relation
+//use App\Models\Post;  
+Route::get(
+  '/post_inverse/user',function()  
+  {  
+    return Post::find(1)->user->name;  
+  }
+);  
+
+
+//One-to-many relationship
+Route::get('/user_hasMany_posts',function(){  
+    $users=User::find(1);  
+    foreach($users->posts as $post){  
+      echo $post->title."<br>";  
+    }  
+});  
+
+
+//Many-to-many relationship
+Route::get('/roles/{id}',function($id){  
+$users=User::find($id);  
+  foreach($users->roles as $role)  
+  {  
+     return $role->name;  
+  }  
+}); 
+
+//Accessing the intermediate/pivot table 
+Route::get('/roles_user/pivot',function(){  
+  $users=User::find(1);  
+  foreach($users->roles as $role)  
+  {  
+    return $role->pivot;  
+  }  
+});  
+
+//retrieve the specific column from the pivot table,
+Route::get('/value_pivot',function(){  
+  $users=User::find(1);  
+  foreach($users->roles as $role)  
+  {  
+    return $role->pivot->created_at;  
+  }  
+});
+
+
+//Has Many Through
+//pulls out the posts of a specific country.
+Route::get('/country_hasManyPostsThrough_user',function()  
+{  
+  
+   $countries=Country::find(1);  
+   foreach($countries->posts as $post)  
+   {  
+     return $post->title;  
+   }  
+});  
+
+
+//Polymorphic relationship
+// Route for the users.  
+Route::get('/user_polymorphic_photo',function(){  
+  $user=User::find(1);  
+  foreach($user->photos as $photo)  
+  {  
+    return $photo;  
+  }  
+});  
+  
+// Route defined for the posts.  
+Route::get('/post_polymorphic_photo',function(){  
+  $post=Post::find(1);  
+  foreach($post->photos as $photo)  
+  {  
+    return $photo;  
+  }  
+  
+});  
+
+
+//Inverse of one-to-many (polymorphic) relationship
+//Till now, we found the image of the users and posts, now we find out the owner of the image.
+Route::get('/polymorphic_inverse_photo/{id}', function($id)  
+{  
+   $photo=Photo::findOrFail($id);  
+   return $photo->imageable;  
+});  
+
+
+//Many-to-many polymorphic relationship
+// Route for getting the tags from the Post model.  
+Route::get('/post_polymorphic_tags',function()  
+{  
+  $post=Post::find(1);   
+  foreach($post->tags as $tag)  
+  {  
+    return $tag->name;  
+  }
+});  
+
+//Route for getting the tags from the Audio model.  
+Route::get('/audio_polymorphic_tags',function()  
+{  
+  $audio=Audio::find(1);   
+  foreach($audio->tags as $tag)  
+  {  
+    return $tag->name;  
+  }
+});  
+
+
+//Inverse of many-to-many (polymorphic) relationship
+    //In a many-to-many polymorphic relationship, we found the tags belonging to the post and audio model. But, in an inverse relationship of many-to-many (polymorphic), we will find out all the posts and audios that belong to a particular tag.
+
+// Route for getting all the posts of a tag.  
+Route::get('/tag/post/{id}',function($id){  
+  $tag=Tag::find($id);  
+  foreach($tag->posts as $post)  
+  {  
+      return $post->title;  
+  }  
+});  
+// Route for getting all the audios of a tag.  
+Route::get('/tag/audio/{id}',function($id){  
+  $tag=Tag::find($id);  
+  foreach($tag->audios as $audio)  
+  {  
+   return $audio->name;  
+  }  
+});  
